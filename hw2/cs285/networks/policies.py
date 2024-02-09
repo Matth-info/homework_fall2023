@@ -58,10 +58,18 @@ class MLPPolicy(nn.Module):
     @torch.no_grad()
     def get_action(self, obs: np.ndarray) -> np.ndarray:
         """Takes a single observation (as a numpy array) and returns a single action (as a numpy array)."""
-        # TODO: implement get_action
-        action = None
+        if len(obs.shape) > 1:
+            observation = obs
+        else:
+            observation = obs[None]
 
-        return action
+        obs = ptu.from_numpy(observation)
+
+        if self.discrete : 
+            action_pt = self.forward(obs).sample()
+        else:
+            action_pt = self.forward(obs).rsample()
+        return ptu.to_numpy(action_pt)
 
     def forward(self, obs: torch.FloatTensor):
         """
@@ -71,11 +79,19 @@ class MLPPolicy(nn.Module):
         """
         if self.discrete:
             # TODO: define the forward pass for a policy with a discrete action space.
-            pass
+            action_dist = distributions.Categorical(
+                logits=self.logits_net(obs)
+            )
         else:
             # TODO: define the forward pass for a policy with a continuous action space.
-            pass
-        return None
+            
+            mean = self.mean_net(obs)
+            scale_tril = torch.diag(torch.exp(self.logstd))
+            batch_dim = mean.shape[0]
+            batch_scale_tril = scale_tril.repeat(batch_dim, 1, 1)
+            action_dist = distributions.MultivariateNormal(loc=mean, scale_tril = batch_scale_tril)
+        
+        return action_dist
 
     def update(self, obs: np.ndarray, actions: np.ndarray, *args, **kwargs) -> dict:
         """Performs one iteration of gradient descent on the provided batch of data."""
@@ -97,7 +113,18 @@ class MLPPolicyPG(MLPPolicy):
         advantages = ptu.from_numpy(advantages)
 
         # TODO: implement the policy gradient actor update.
-        loss = None
+
+        log_probs = self.forward(obs).log_prob(actions)
+        loss = -(log_probs * advantages).mean() #(Actor Loss) loss function for the polic gradient algo 
+        #should not see as a loss function, it does not measure performance and its distribution depends on parameters
+        #in policy gradient, the loss function going down is not a signal of good performance whatsoever. 
+        #Only care about the average return.
+        
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        #skip the baseline case 
 
         return {
             "Actor Loss": ptu.to_numpy(loss),
