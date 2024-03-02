@@ -155,10 +155,10 @@ class PGAgent(nn.Module):
                 # remove dummy advantage
                 advantages = advantages[:-1]
 
+
         # TODO: normalize the advantages to have a mean of zero and a standard deviation of one within the batch
         if self.normalize_advantages:
             eps = 1e-10
-            print("advantage shape = " , advantages.shape)
             m = np.mean(advantages)
             std = np.std(advantages)
             

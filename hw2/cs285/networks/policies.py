@@ -90,7 +90,7 @@ class MLPPolicy(nn.Module):
             batch_dim = mean.shape[0]
             batch_scale_tril = scale_tril.repeat(batch_dim, 1, 1)
             action_dist = distributions.MultivariateNormal(loc=mean, scale_tril = batch_scale_tril)
-        
+            
         return action_dist
 
     def update(self, obs: np.ndarray, actions: np.ndarray, *args, **kwargs) -> dict:

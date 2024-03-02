@@ -44,12 +44,12 @@ class ValueCritic(nn.Module):
         q_values = ptu.from_numpy(q_values)
 
         # TODO: update the critic using the observations and q_values
-        pred_values = self.forward(obs)
+        pred_values = torch.squeeze(self.forward(obs))
 
         #loss = nn.functional.huber_loss(pred_values, q_values, reduction='mean', delta=1.0)
         loss = nn.MSELoss()
         loss = loss(pred_values, q_values)
-        
+
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
